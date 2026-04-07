@@ -1,0 +1,17 @@
+README.md
+pyproject.toml
+ipv7/__init__.py
+ipv7/ai_routing.py
+ipv7/cli.py
+ipv7/ipv7_core.py
+ipv7/ipv7_header.py
+ipv7/quantum_layer.py
+ipv7/smart_security.py
+ipv7/utils.py
+ipv7.egg-info/PKG-INFO
+ipv7.egg-info/SOURCES.txt
+ipv7.egg-info/dependency_links.txt
+ipv7.egg-info/entry_points.txt
+ipv7.egg-info/requires.txt
+ipv7.egg-info/top_level.txt
+tests/test_ipv7.py

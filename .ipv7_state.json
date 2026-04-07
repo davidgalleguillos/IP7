@@ -1,0 +1,43 @@
+{
+    "routing_table": {
+        "736d6f6b652d7461726765740000000000000000000000000000000000000000": {
+            "next_hop": "6e6578742d686f70",
+            "metric": 1,
+            "interface": "eth0",
+            "qos_capabilities": [
+                "BEST_EFFORT",
+                "GUARANTEED",
+                "REALTIME",
+                "QUANTUM"
+            ]
+        },
+        "713235363a736d6f6b652d746172676574000000000000000000000000000000": {
+            "next_hop": "6e6578742d686f70",
+            "metric": 1,
+            "interface": "eth0",
+            "qos_capabilities": [
+                "BEST_EFFORT",
+                "GUARANTEED",
+                "REALTIME",
+                "QUANTUM"
+            ]
+        },
+        "c3bb08f7d780c61cbfc12e74d927088dbc9e6ad5ef5ec8105b111f760dba6a7b": {
+            "next_hop": "32a86d25f70a615bb75ffe0bc5a6af876e0102f2b60ff68052e0ed1fa9a4eb13",
+            "metric": 1,
+            "interface": "eth0",
+            "qos_capabilities": [
+                "BEST_EFFORT",
+                "GUARANTEED",
+                "REALTIME",
+                "QUANTUM"
+            ]
+        }
+    },
+    "quantum_keys": {},
+    "stats": {
+        "packets_sent": 1,
+        "packets_blocked": 0,
+        "quantum_channels": 0
+    }
+}

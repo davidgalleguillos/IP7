@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ipv7"
+version = "0.1.0"
+description = "IPv7 Protocol Reference Implementation - Next Generation Internet Protocol"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+dependencies = [
+    "cryptography>=3.4.0",
+    "numpy>=1.21.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.18.0",
+    "pytest-cov>=2.12.0",
+    "black>=22.0.0",
+    "mypy>=0.910",
+]
+ai = [
+    "torch>=2.0.0",
+]
+
+[project.scripts]
+ipv7 = "ipv7.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ipv7*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = false

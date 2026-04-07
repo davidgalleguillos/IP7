@@ -1,0 +1,2 @@
+[console_scripts]
+ipv7 = ipv7.cli:main

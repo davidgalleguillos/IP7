@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IPv7 Admin Dashboard</title>
+  <meta name="description" content="IPv7 Protocol Administration Dashboard - Real-time monitoring of AI routing, quantum channels, and adaptive security." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <span class="logo-icon">⬡</span>
+      <span class="logo-text">IPv7</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-section="overview" id="nav-overview">
+        <span class="nav-icon">◈</span><span class="nav-label">Overview</span>
+      </a>
+      <a href="#" class="nav-item" data-section="packets" id="nav-packets">
+        <span class="nav-icon">⇄</span><span class="nav-label">Packets</span>
+      </a>
+      <a href="#" class="nav-item" data-section="routing" id="nav-routing">
+        <span class="nav-icon">⊛</span><span class="nav-label">AI Routing</span>
+      </a>
+      <a href="#" class="nav-item" data-section="routes" id="nav-routes">
+        <span class="nav-icon">▤</span><span class="nav-label">Routing Table</span>
+      </a>
+      <a href="#" class="nav-item" data-section="quantum" id="nav-quantum">
+        <span class="nav-icon">⊕</span><span class="nav-label">Quantum</span>
+      </a>
+      <a href="#" class="nav-item" data-section="security" id="nav-security">
+        <span class="nav-icon">⊘</span><span class="nav-label">Security</span>
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="status-dot online"></div>
+      <span>System Online</span>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main-content">
+    <!-- Top Bar -->
+    <header class="topbar">
+      <div class="topbar-title" id="page-title">Overview</div>
+      <div class="topbar-badges">
+        <span class="badge badge-green" id="badge-uptime">⏱ --s</span>
+        <span class="badge badge-cyan" id="badge-packets">📦 0 pkts</span>
+        <span class="badge badge-red" id="badge-blocked">🛡 0 blocked</span>
+        <span class="badge badge-purple" id="badge-quantum">⊕ 0 channels</span>
+      </div>
+    </header>
+
+    <!-- SECTION: Overview -->
+    <section class="section active" id="section-overview">
+      <div class="stat-grid">
+        <div class="stat-card" id="card-latency">
+          <div class="stat-label">Latency</div>
+          <div class="stat-value cyan" id="stat-latency">-- ms</div>
+          <div class="stat-sub">Round-trip time</div>
+        </div>
+        <div class="stat-card" id="card-bandwidth">
+          <div class="stat-label">Bandwidth</div>
+          <div class="stat-value purple" id="stat-bandwidth">-- Mbps</div>
+          <div class="stat-sub">Available throughput</div>
+        </div>
+        <div class="stat-card" id="card-congestion">
+          <div class="stat-label">Congestion</div>
+          <div class="stat-value orange" id="stat-congestion">--%</div>
+          <div class="stat-sub">Network saturation</div>
+        </div>
+        <div class="stat-card" id="card-errors">
+          <div class="stat-label">Error Rate</div>
+          <div class="stat-value pink" id="stat-errors">--%</div>
+          <div class="stat-sub">Packet loss ratio</div>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-header">
+          <span class="chart-title">Live Network Latency</span>
+          <span class="chart-badge">LIVE</span>
+        </div>
+        <canvas id="latency-chart" width="900" height="220"></canvas>
+      </div>
+
+      <div class="row-2">
+        <div class="mini-card">
+          <h3>Protocol Stack</h3>
+          <div class="protocol-layers">
+            <div class="layer layer-quantum">⊕ Quantum Layer</div>
+            <div class="layer layer-ai">⊛ AI Routing</div>
+            <div class="layer layer-security">⊘ Smart Security</div>
+            <div class="layer layer-core">◈ IPv7 Core (256-bit)</div>
+          </div>
+        </div>
+        <div class="mini-card">
+          <h3>Activity Log</h3>
+          <div class="log-container" id="activity-log"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: Packets -->
+    <section class="section" id="section-packets">
+      <div class="panel">
+        <h2 class="panel-title">⇄ Send IPv7 Packet</h2>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="send-source">Source Address</label>
+            <input type="text" id="send-source" value="q256:source_node_001" class="input-field" />
+          </div>
+          <div class="form-group">
+            <label for="send-dest">Destination Address</label>
+            <input type="text" id="send-dest" value="q256:dest_node_002" class="input-field" />
+          </div>
+          <div class="form-group">
+            <label for="send-qos">QoS Level</label>
+            <select id="send-qos" class="input-field">
+              <option value="BEST_EFFORT">BEST_EFFORT</option>
+              <option value="GUARANTEED">GUARANTEED</option>
+              <option value="REALTIME">REALTIME</option>
+              <option value="QUANTUM" selected>QUANTUM</option>
+            </select>
+          </div>
+          <div class="form-group full-width">
+            <label for="send-payload">Payload</label>
+            <input type="text" id="send-payload" value="Hello IPv7 Network!" class="input-field" />
+          </div>
+        </div>
+        <button class="btn btn-cyan" id="btn-send" onclick="sendPacket()">⇄ Send Packet</button>
+        <div class="result-box" id="send-result"></div>
+      </div>
+    </section>
+
+    <!-- SECTION: Routing Table -->
+    <section class="section" id="section-routes">
+      <div class="panel full-width">
+        <h2 class="panel-title">▤ Persistent Routing Table</h2>
+        <p class="panel-desc">Current routes stored in the protocol state. Managed via CLI or API.</p>
+        <div class="table-container">
+          <table class="data-table" id="routing-table">
+            <thead>
+              <tr>
+                <th>Prefix</th>
+                <th>Next Hop</th>
+                <th>Interface</th>
+                <th>Metric</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Dynamic content -->
+            </tbody>
+          </table>
+        </div>
+        <button class="btn btn-sm btn-cyan" style="margin-top:15px" onclick="fetchRoutingTable()">↻ Refresh Table</button>
+      </div>
+    </section>
+
+    <!-- SECTION: AI Routing -->
+    <section class="section" id="section-routing">
+      <div class="panel">
+        <h2 class="panel-title">⊛ AI Route Analyzer</h2>
+        <p class="panel-desc">Configure network state parameters and get an AI recommendation.</p>
+        <div class="slider-grid">
+          <div class="slider-group">
+            <label>Latency: <span id="lbl-latency">50</span> ms</label>
+            <input type="range" id="sl-latency" min="1" max="500" value="50" oninput="document.getElementById('lbl-latency').textContent=this.value" />
+          </div>
+          <div class="slider-group">
+            <label>Bandwidth: <span id="lbl-bandwidth">1000</span> Mbps</label>
+            <input type="range" id="sl-bandwidth" min="10" max="10000" value="1000" oninput="document.getElementById('lbl-bandwidth').textContent=this.value" />
+          </div>
+          <div class="slider-group">
+            <label>Congestion: <span id="lbl-congestion">20</span>%</label>
+            <input type="range" id="sl-congestion" min="0" max="100" value="20" oninput="document.getElementById('lbl-congestion').textContent=this.value" />
+          </div>
+        </div>
+        <button class="btn btn-purple" onclick="analyzeRoute()">⊛ Analyze Route</button>
+        <div class="result-box" id="route-result"></div>
+      </div>
+    </section>
+
+    <!-- SECTION: Quantum -->
+    <section class="section" id="section-quantum">
+      <div class="panel">
+        <h2 class="panel-title">⊕ Quantum Channel Manager</h2>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="q-peer">Peer Node ID</label>
+            <input type="text" id="q-peer" value="gateway_quantum_01" class="input-field" />
+          </div>
+          <div class="form-group">
+            <label for="q-action">Action</label>
+            <select id="q-action" class="input-field">
+              <option value="establish">Establish Channel</option>
+              <option value="entangle">Create Entanglement</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-purple" onclick="quantumOp()">⊕ Execute Quantum Op</button>
+        <div class="result-box" id="quantum-result"></div>
+        <div class="entanglement-viz" id="entanglement-viz" style="display:none">
+          <div class="qubit qubit-left">●</div>
+          <div class="entangle-line"></div>
+          <div class="qubit qubit-right">●</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: Security -->
+    <section class="section" id="section-security">
+      <div class="panel">
+        <h2 class="panel-title">⊘ Adaptive Security Audit</h2>
+        <p class="panel-desc">Test payloads against the SmartFirewall ML engine.</p>
+        <div class="form-group">
+          <label for="sec-payload">Payload to Analyze</label>
+          <input type="text" id="sec-payload" value="Hello, safe packet!" class="input-field" />
+        </div>
+        <div class="preset-btns">
+          <button class="btn btn-sm btn-cyan" onclick="setPreset('Hello, safe packet!')">Safe</button>
+          <button class="btn btn-sm btn-orange" onclick="setPreset('exec(rm -rf /)')">Shell Injection</button>
+          <button class="btn btn-sm btn-red" onclick="setPreset('union select * from users')">SQL Injection</button>
+          <button class="btn btn-sm btn-pink" onclick="setPreset('<script>alert(xss)</script>')">XSS</button>
+        </div>
+        <button class="btn btn-orange" onclick="analyzeSecurity()">⊘ Analyze Payload</button>
+        <div class="result-box" id="security-result"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

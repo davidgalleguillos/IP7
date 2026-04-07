@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  ipv7-admin:
+    build: .
+    container_name: ipv7-gui
+    ports:
+      - "8765:8765"
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
