@@ -31,9 +31,12 @@ class PacketFragmenter:
             yield (header, payload)
             return
 
+        import random
+        fragment_id = random.randint(0, 0xFFFFFFFF)
         offset = 0
         while offset < len(payload):
-            chunk = payload[offset:offset + mtu]
+            chunk_size = min(len(payload) - offset, mtu)
+            chunk = payload[offset:offset + chunk_size]
             fragment_header = IPv7Header(
                 source=header.source,
                 destination=header.destination,
@@ -45,9 +48,12 @@ class PacketFragmenter:
                 geo_location=header.geo_location,
                 encryption_enabled=header.encryption_enabled,
                 encryption_algorithm=header.encryption_algorithm,
+                fragment_id=fragment_id,
+                fragment_offset=offset,
+                more_fragments=(offset + chunk_size < len(payload))
             )
             yield (fragment_header, chunk)
-            offset += mtu
+            offset += chunk_size
 
     @staticmethod
     def needs_fragmentation(payload_length: int, mtu: int = 9000) -> bool:
@@ -66,21 +72,37 @@ class PacketFragmenter:
     def reassemble(fragments: List[Tuple[IPv7Header, bytes]]) -> Tuple[IPv7Header, bytes]:
         """Re-ensambla una lista de fragmentos en el paquete original.
 
-        Concatena los payloads en orden y retorna el header del primer
-        fragmento como cabecera representativa del paquete completo.
+        Concatena los payloads en orden de desplazamiento y retorna el header
+        del primer fragmento como cabecera representativa.
 
         Args:
-            fragments: Lista de tuplas ``(header, payload)`` en orden.
+            fragments: Lista de tuplas ``(header, payload)``.
 
         Returns:
             Tupla ``(first_header, reassembled_payload)``.
 
         Raises:
-            ValueError: Si *fragments* está vacío.
+            ValueError: Si *fragments* está vacío o faltan fragmentos.
         """
         if not fragments:
             raise ValueError("Cannot reassemble an empty fragment list.")
 
-        first_header = fragments[0][0]
-        reassembled_payload = b"".join(payload for _, payload in fragments)
+        # Ordenar fragmentos por offset para asegurar el reensamblado correcto
+        sorted_fragments = sorted(fragments, key=lambda f: f[0].fragment_offset)
+        
+        # Verificar que no falten fragmentos (opcional pero recomendado)
+        current_offset = 0
+        for header, payload in sorted_fragments:
+            if header.fragment_offset != current_offset:
+                raise ValueError(f"Missing fragment at offset {current_offset}")
+            current_offset += len(payload)
+
+        first_header = sorted_fragments[0][0]
+        reassembled_payload = b"".join(payload for _, payload in sorted_fragments)
+        
+        # Restaurar campos del header original (simplificado)
+        first_header.payload_length = len(reassembled_payload)
+        first_header.fragment_offset = 0
+        first_header.more_fragments = False
+        
         return (first_header, reassembled_payload)

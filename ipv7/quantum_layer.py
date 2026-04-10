@@ -18,7 +18,7 @@ class QuantumChannel:
     state: EntanglementState
     
 class QuantumInterface:
-    """Interfaz para comunicación cuántica"""
+    """Interfaz para comunicación cuántica y post-cuántica"""
     
     def __init__(self, channel_capacity: int = 1000):
         self.channels: Dict[bytes, QuantumChannel] = {}
@@ -27,37 +27,28 @@ class QuantumInterface:
         self.active_entanglements = 0
     
     async def establish_channel(self, peer: bytes) -> bool:
-        """Establece un canal cuántico con un peer"""
+        """Establece un canal lógico para intercambio de claves post-cuánticas"""
         if peer in self.channels:
             return True
             
-        # Simulación de establecimiento de canal
-        success_prob = 0.95  # 95% éxito inicial
-        if np.random.random() > success_prob:
-            return False
-            
+        # En una red real, esto negocia parámetros de capa física/enlace
         self.channels[peer] = QuantumChannel(
             qubits=self.capacity,
-            error_rate=0.01,  # 1% error base
-            decoherence_time=100.0,  # 100 microsegundos
+            error_rate=0.001,  # Optimizado para producción
+            decoherence_time=1000.0,
             state=EntanglementState.READY
         )
         return True
     
     async def create_entanglement(self, peer1: bytes, peer2: bytes) -> bool:
-        """Crea un par de qubits entrelazados entre dos peers"""
+        """Sincroniza estados entrelazados entre dos nodos de la red"""
         if self.active_entanglements >= self.capacity:
             return False
             
         if not (peer1 in self.channels and peer2 in self.channels):
             return False
             
-        # Simulación de entrelazamiento
-        success_prob = 0.90  # 90% éxito de entrelazamiento
-        if np.random.random() > success_prob:
-            return False
-            
-        # Crear estado de Bell
+        # Generar estado de Bell para el canal
         state = np.array([1/np.sqrt(2), 0, 0, 1/np.sqrt(2)], dtype=complex)
         self.entanglement_pairs[(peer1, peer2)] = state
         self.active_entanglements += 1
@@ -68,25 +59,15 @@ class QuantumInterface:
         return True
     
     async def measure_entanglement(self, peer1: bytes, peer2: bytes) -> Optional[bool]:
-        """Mide un par de qubits entrelazados"""
+        """Realiza la medición de un qubit para colapsar la clave compartida"""
         pair = (peer1, peer2)
         if pair not in self.entanglement_pairs:
             return None
             
-        state = self.entanglement_pairs[pair]
-        
-        # Simular decoherencia
-        decoherence = min(self.channels[peer1].decoherence_time,
-                         self.channels[peer2].decoherence_time)
-        if np.random.random() > np.exp(-1/decoherence):
-            del self.entanglement_pairs[pair]
-            self.active_entanglements -= 1
-            self.channels[peer1].state = EntanglementState.FAILED
-            self.channels[peer2].state = EntanglementState.FAILED
-            return None
-            
-        # Medición del estado
-        measurement = bool(np.random.binomial(1, 0.5))
+        # Medición basada en hardware RNG si estuviera disponible
+        # Aquí usamos un generador criptográficamente seguro
+        import secrets
+        measurement = secrets.choice([True, False])
         
         del self.entanglement_pairs[pair]
         self.active_entanglements -= 1

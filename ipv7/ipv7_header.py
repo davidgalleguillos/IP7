@@ -38,6 +38,9 @@ class IPv7Header:
     encryption_enabled: bool = False
     encryption_algorithm: Optional[str] = None
     version: int = 7
+    fragment_id: int = 0  # 32 bits para identificar fragmentos del mismo paquete
+    fragment_offset: int = 0  # 16 bits para el desplazamiento del fragmento
+    more_fragments: bool = False  # Flag para indicar si hay más fragmentos
     
     @classmethod
     def from_string_addresses(cls, source: str, destination: str, **kwargs):
@@ -77,6 +80,9 @@ class IPv7Header:
         ))
         header.extend(struct.pack('!B', self.qos_level.value))
         
+        # Fragmentación
+        header.extend(struct.pack('!IHB', self.fragment_id, self.fragment_offset, 1 if self.more_fragments else 0))
+        
         # Geo location
         if self.geo_location:
             header.extend(b'\x01')  # Has geo
@@ -96,9 +102,9 @@ class IPv7Header:
     @classmethod
     def unpack(cls, data: bytes) -> 'IPv7Header':
         """Deserializa bytes a una cabecera"""
-        # Minimum size: 1(ver)+32(src)+32(dst)+4(prio)+9(len/nh/hl)+1(qos)+1(geo_flag)+1(enc_flag) = 81
-        if len(data) < 81:
-            raise ValueError(f"IPv7 header too short: {len(data)} bytes (minimum 81)")
+        # Minimum size: 1(ver)+32(src)+32(dst)+4(prio)+9(len/nh/hl)+1(qos)+7(frag)+1(geo_flag)+1(enc_flag) = 88
+        if len(data) < 88:
+            raise ValueError(f"IPv7 header too short: {len(data)} bytes (minimum 88)")
 
         version = data[0]
         if version != 7:
@@ -121,6 +127,11 @@ class IPv7Header:
         qos_value = struct.unpack('!B', data[pos:pos+1])[0]
         pos += 1
         qos_level = QoSLevel(qos_value)
+        
+        # Fragmentación
+        fragment_id, fragment_offset, more_frag_val = struct.unpack('!IHB', data[pos:pos+7])
+        more_fragments = more_frag_val == 1
+        pos += 7
         
         # Geo location
         has_geo = data[pos] == 1
@@ -149,6 +160,9 @@ class IPv7Header:
             next_header=next_header,
             hop_limit=hop_limit,
             qos_level=qos_level,
+            fragment_id=fragment_id,
+            fragment_offset=fragment_offset,
+            more_fragments=more_fragments,
             geo_location=geo_location,
             encryption_enabled=encryption_enabled,
             encryption_algorithm=encryption_algorithm

@@ -4,7 +4,11 @@ from .exceptions import RoutingError, QuantumLinkError
 from typing import Any, List, Tuple, Dict, Optional
 
 from .ipv7_header import IPv7Header, QoSLevel
+from .transmitter import ClassicalTransmitter
 import hashlib
+import random
+import asyncio
+import socket
 from cryptography.fernet import Fernet
 
 @dataclass
@@ -13,28 +17,60 @@ class RoutingEntry:
     metric: int
     interface: str
     qos_capabilities: List[QoSLevel]
+    tunnel_endpoint: Optional[Tuple[str, int]] = None  # (IPv4/v6, port) para túnel UDP
 
 class IPv7Router:
-    """Router implementation for IPv7.
-
-    Handles routing table management, packet fragmentation, QoS negotiation,
-    optional quantum transmission and classical transmission. All public
-    methods are type‑annotated and include logging for easier debugging.
-    """
-    # Custom exceptions are defined in ipv7.exceptions
+    """Router real para IPv7 que utiliza túneles UDP."""
     
-    MTU = 9000  # Jumbo frames por defecto
+    MTU = 9000
     
-    def __init__(self, initial_state: Optional[Dict[str, Any]] = None):
+    def __init__(self, initial_state: Optional[Dict[str, Any]] = None, bind_port: int = 8767):
         self.routing_table: Dict[bytes, RoutingEntry] = {}
         self.quantum_keys: Dict[bytes, bytes] = {}
         self.encryption_key = Fernet.generate_key()
         self.fernet = Fernet(self.encryption_key)
+        self._fragment_counter = random.randint(0, 0xFFFFFFFF)
+        self.bind_port = bind_port
+        self.transmitter = ClassicalTransmitter(bind_port=bind_port)
+        self._running = False
         
         if initial_state:
             self.routing_table = initial_state.get("routing_table", {})
             self.quantum_keys = initial_state.get("quantum_keys", {})
+
+    async def start(self):
+        """Inicia el servicio de escucha de red del router"""
+        if self._running:
+            return
+        self._running = True
+        loop = asyncio.get_running_loop()
         
+        # Crear socket de escucha
+        listen_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        listen_sock.setblocking(False)
+        listen_sock.bind(("0.0.0.0", self.bind_port))
+        
+        logging.info(f"IPv7 Router escuchando en puerto UDP {self.bind_port}")
+        
+        while self._running:
+            data, addr = await loop.sock_recvfrom(listen_sock, 65535)
+            asyncio.create_task(self._handle_incoming_packet(data, addr))
+
+    async def _handle_incoming_packet(self, data: bytes, addr: Tuple[str, int]):
+        """Procesa un paquete IPv7 recibido por el túnel UDP"""
+        try:
+            header = IPv7Header.unpack(data)
+            payload = data[len(header.pack()):]
+            
+            logging.info(f"Paquete IPv7 recibido de {header.source.hex()} vía {addr}")
+            
+            # Aquí iría la lógica de entrega local o reenvío
+            # Si el destino somos nosotros (implementar local_address), procesar
+            # Si no, reenviar usando _route_packet
+            
+        except Exception as e:
+            logging.error(f"Error al procesar paquete entrante: {e}")
+
     async def send(self, header: IPv7Header, payload: bytes) -> bool:
         """Envía un paquete IPv7"""
         if header.encryption_enabled:
@@ -58,8 +94,12 @@ class IPv7Router:
             
         fragments = []
         offset = 0
+        self._fragment_counter = (self._fragment_counter + 1) & 0xFFFFFFFF
+        
         while offset < len(payload):
-            fragment = payload[offset:offset + self.MTU]
+            chunk_size = min(len(payload) - offset, self.MTU)
+            fragment = payload[offset:offset + chunk_size]
+            
             fragment_header = IPv7Header(
                 source=header.source,
                 destination=header.destination,
@@ -70,36 +110,32 @@ class IPv7Router:
                 qos_level=header.qos_level,
                 geo_location=header.geo_location,
                 encryption_enabled=header.encryption_enabled,
-                encryption_algorithm=header.encryption_algorithm
+                encryption_algorithm=header.encryption_algorithm,
+                fragment_id=self._fragment_counter,
+                fragment_offset=offset,
+                more_fragments=(offset + chunk_size < len(payload))
             )
             fragments.append((fragment_header, fragment))
-            offset += self.MTU
+            offset += chunk_size
             
         return fragments
     
     async def _route_packet(self, header: IPv7Header, payload: bytes) -> bool:
-        """Enruta un único paquete"""
+        """Enruta un único paquete utilizando el transmisor real"""
         if header.hop_limit <= 0:
-            logging.error("Routing error: hop limit exhausted for packet to %s", header.destination.hex())
             raise RoutingError(f"Hop limit exhausted for destination {header.destination.hex()}")
             
         next_hop = self._get_next_hop(header.destination)
         if not next_hop:
-            logging.error("Routing error: no next hop found for destination %s", header.destination.hex())
             raise RoutingError(f"No route to destination {header.destination.hex()}")
             
         # Verificar soporte QoS
         if header.qos_level not in next_hop.qos_capabilities:
-            # Degradar QoS si es necesario
             fallback_qos = self._get_best_available_qos(next_hop.qos_capabilities)
             header.qos_level = fallback_qos
             
-        # Quantum routing si está disponible
-        if header.qos_level == QoSLevel.QUANTUM and self._has_quantum_link(next_hop):
-            return await self._quantum_transmit(header, payload, next_hop)
-            
-        # Transmisión clásica
-        return await self._classical_transmit(header, payload, next_hop)
+        # Transmisión real usando el transmisor configurado
+        return await self.transmitter.transmit(header, payload, next_hop)
     
     def _get_next_hop(self, destination: bytes) -> Optional[RoutingEntry]:
         """Determina el siguiente salto basado en la tabla de rutas"""

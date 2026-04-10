@@ -3,6 +3,8 @@ from ipv7.ipv7_header import IPv7Header, GeoLocation, QoSLevel
 from ipv7.ipv7_core import IPv7Router, RoutingEntry
 from ipv7.utils import IPv7Address, PacketValidator, NetworkDiagnostics
 
+from ipv7.packet_fragmenter import PacketFragmenter
+
 @pytest.fixture
 def sample_header():
     return IPv7Header(
@@ -59,7 +61,29 @@ class TestIPv7Router:
         assert len(fragments) > 1
         total_size = sum(len(p) for _, p in fragments)
         assert total_size == len(large_payload)
+        # Verificar nuevos campos
+        assert fragments[0][0].fragment_id == fragments[1][0].fragment_id
+        assert fragments[0][0].fragment_offset == 0
+        assert fragments[1][0].fragment_offset == router.MTU
+        assert fragments[0][0].more_fragments == True
         
+    def test_reassembly(self, sample_header):
+        large_payload = b"Fragment 1" + b"Fragment 2" + b"Fragment 3"
+        # Forzar MTU pequeño para el test
+        original_mtu = PacketFragmenter.MTU
+        PacketFragmenter.MTU = 10
+        try:
+            fragments = list(PacketFragmenter.fragment(sample_header, large_payload))
+            assert len(fragments) == 3
+            # Mezclar fragmentos para probar el ordenamiento por offset
+            mixed_fragments = [fragments[2], fragments[0], fragments[1]]
+            header, reassembled = PacketFragmenter.reassemble(mixed_fragments)
+            assert reassembled == large_payload
+            assert header.payload_length == len(large_payload)
+            assert not header.more_fragments
+        finally:
+            PacketFragmenter.MTU = original_mtu
+
     def test_routing_table(self, router):
         entry = RoutingEntry(
             next_hop=b'\x02' * 32,
