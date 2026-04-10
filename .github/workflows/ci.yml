@@ -11,10 +11,33 @@ on:
 
 jobs:
   # ─────────────────────────────────────────────
+  # 0. Linting y Seguridad
+  # ─────────────────────────────────────────────
+  lint:
+    name: Lint & Security
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install tools
+        run: pip install black mypy bandit
+      - name: Black check
+        run: black . --check
+      - name: MyPy check
+        run: mypy ipv7/ --ignore-missing-imports
+      - name: Bandit security scan
+        run: bandit -r ipv7/ -ll
+
+  # ─────────────────────────────────────────────
   # 1. Tests en múltiples SO y versiones Python
   # ─────────────────────────────────────────────
   test:
     name: Test (${{ matrix.os }} / Python ${{ matrix.python-version }})
+    needs: lint
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
