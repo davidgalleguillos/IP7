@@ -53,11 +53,12 @@ class IPv7Router:
         listen_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         listen_sock.setblocking(False)
         listen_sock.bind(("0.0.0.0", self.bind_port))  # nosec B104
-        
+
         logging.info(f"IPv7 Router escuchando en puerto UDP {self.bind_port}")
 
         while self._running:
-            data, addr = await loop.sock_recvfrom(listen_sock, 65535)
+            # Recibir datos usando executor para no bloquear el loop
+            data, addr = await loop.run_in_executor(None, listen_sock.recvfrom, 65535)
             asyncio.create_task(self._handle_incoming_packet(data, addr))
 
     async def _handle_incoming_packet(self, data: bytes, addr: Tuple[str, int]):

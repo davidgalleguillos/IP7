@@ -152,7 +152,11 @@ class AIRouter:
 
     def analyze_network_state(self, state: NetworkState) -> Dict[str, Any]:
         """Analiza el estado de la red y proporciona recomendaciones"""
-        analysis: Dict[str, Any] = {"health": "good", "bottleneck": None, "recommendations": []}
+        analysis: Dict[str, Any] = {
+            "health": "good",
+            "bottleneck": None,
+            "recommendations": [],
+        }
 
         # Análisis de latencia
         if state.latency > 100:  # >100ms
@@ -173,7 +177,9 @@ class AIRouter:
         # Análisis de errores
         if state.error_rate > 0.01:  # >1% error rate
             analysis["health"] = "warning"
-            analysis["recommendations"].append("Implement error correction or packet validation")
+            analysis["recommendations"].append(
+                "Implement error correction or packet validation"
+            )
 
         return analysis
 
