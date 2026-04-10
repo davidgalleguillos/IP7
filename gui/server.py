@@ -121,6 +121,21 @@ def api_get_routing_table(params):
     return {"routes": routes}
 
 
+def api_get_discovered_nodes(params):
+    """Retorna los nodos descubiertos automáticamente por el DiscoveryService"""
+    nodes = []
+    for v7_addr, info in global_router.discovery_service._discovered_nodes.items():
+        nodes.append(
+            {
+                "ipv7": v7_addr,
+                "ip": info["ip"],
+                "port": info["port"],
+                "last_seen": round(time.time() - info["last_seen"], 1),
+            }
+        )
+    return {"nodes": nodes}
+
+
 GUI_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -141,6 +156,7 @@ class IPv7Handler(http.server.SimpleHTTPRequestHandler):
             "/api/security": api_analyze_security,
             "/api/route": api_route_analysis,
             "/api/routing-table": api_get_routing_table,
+            "/api/discovered-nodes": api_get_discovered_nodes,
         }
 
         if parsed.path in route_map:

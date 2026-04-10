@@ -5,12 +5,13 @@ from typing import Any, List, Tuple, Dict, Optional
 
 from .ipv7_header import IPv7Header, QoSLevel
 from .transmitter import ClassicalTransmitter
+from .discovery import DiscoveryService
 import hashlib
 import random
 import asyncio
 import socket
+import logging
 from cryptography.fernet import Fernet
-
 
 @dataclass
 class RoutingEntry:
@@ -20,46 +21,66 @@ class RoutingEntry:
     qos_capabilities: List[QoSLevel]
     tunnel_endpoint: Optional[Tuple[str, int]] = None  # (IPv4/v6, port) para túnel UDP
 
-
 class IPv7Router:
-    """Router real para IPv7 que utiliza túneles UDP."""
-
+    """Router real para IPv7 que utiliza túneles UDP y auto-descubrimiento."""
+    
     MTU = 9000
-
-    def __init__(
-        self, initial_state: Optional[Dict[str, Any]] = None, bind_port: int = 8767
-    ):
+    
+    def __init__(self, initial_state: Optional[Dict[str, Any]] = None, bind_port: int = 8767, local_address: str = "q256:local_node"):
         self.routing_table: Dict[bytes, RoutingEntry] = {}
         self.quantum_keys: Dict[bytes, bytes] = {}
         self.encryption_key = Fernet.generate_key()
         self.fernet = Fernet(self.encryption_key)
         self._fragment_counter = random.randint(0, 0xFFFFFFFF)
         self.bind_port = bind_port
+        self.local_address = local_address
         self.transmitter = ClassicalTransmitter(bind_port=bind_port)
         self._running = False
-
+        self.discovery_service = DiscoveryService(
+            ipv7_address=local_address,
+            udp_tunnel_port=bind_port,
+            on_node_discovered=self._auto_configure_tunnel
+        )
+        
         if initial_state:
             self.routing_table = initial_state.get("routing_table", {})
             self.quantum_keys = initial_state.get("quantum_keys", {})
 
     async def start(self):
-        """Inicia el servicio de escucha de red del router"""
+        """Inicia el servicio de escucha de red y el auto-descubrimiento"""
         if self._running:
             return
         self._running = True
         loop = asyncio.get_running_loop()
-
+        
         # Crear socket de escucha
         listen_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         listen_sock.setblocking(False)
         listen_sock.bind(("0.0.0.0", self.bind_port))  # nosec B104
-
-        logging.info(f"IPv7 Router escuchando en puerto UDP {self.bind_port}")
-
+        
+        logging.info(f"IPv7 Router ({self.local_address}) escuchando en puerto UDP {self.bind_port}")
+        
+        # Iniciar descubrimiento
+        await self.discovery_service.start()
+        
         while self._running:
             # Recibir datos usando executor para no bloquear el loop
             data, addr = await loop.run_in_executor(None, listen_sock.recvfrom, 65535)
             asyncio.create_task(self._handle_incoming_packet(data, addr))
+
+    async def _auto_configure_tunnel(self, node_v7: str, node_ip: str, node_port: int):
+        """Configura automáticamente un túnel hacia un nodo descubierto"""
+        dest_bytes = IPv7Header._address_to_bytes(node_v7)
+        if dest_bytes not in self.routing_table:
+            entry = RoutingEntry(
+                next_hop=dest_bytes,
+                metric=1,
+                interface="auto-discovered",
+                qos_capabilities=list(QoSLevel),
+                tunnel_endpoint=(node_ip, node_port)
+            )
+            self.add_route(dest_bytes, entry)
+            logging.info(f"Ruta auto-configurada hacia {node_v7} via {node_ip}:{node_port}")
 
     async def _handle_incoming_packet(self, data: bytes, addr: Tuple[str, int]):
         """Procesa un paquete IPv7 recibido por el túnel UDP"""

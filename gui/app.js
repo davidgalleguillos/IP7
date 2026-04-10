@@ -309,13 +309,43 @@ async function fetchRoutingTable() {
   }
 }
 
+// ---- Discovered Nodes ----
+async function fetchDiscoveredNodes() {
+  try {
+    const res = await fetch(`${API}/api/discovered-nodes`);
+    const d = await res.json();
+    const tbody = document.querySelector('#discovered-nodes tbody');
+    tbody.innerHTML = '';
+    
+    if (d.nodes.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px; color: var(--text-muted);">Scanning for neighbors via UDP broadcast...</td></tr>';
+      return;
+    }
+
+    d.nodes.forEach(n => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="mono cyan">${n.ipv7}</td>
+        <td class="mono">${n.ip}</td>
+        <td class="mono purple">${n.port}</td>
+        <td class="text-muted">${Math.abs(n.last_seen)}s ago</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  } catch (e) {
+    console.error('Failed to fetch discovered nodes', e);
+  }
+}
+
 // ---- Init ----
 document.addEventListener('DOMContentLoaded', () => {
   initChart();
   fetchStats();
   fetchRoutingTable();
+  fetchDiscoveredNodes();
   statsInterval = setInterval(fetchStats, 2000);
   setInterval(fetchRoutingTable, 5000);
+  setInterval(fetchDiscoveredNodes, 3000);
   addLog('ok', 'IPv7 Dashboard initialized');
   addLog('ok', 'Connecting to API server...');
 });
