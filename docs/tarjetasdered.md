@@ -14,3 +14,25 @@ El Futuro: SmartNICs y DPUs Ya estamos viendo el comienzo de esto con las SmartN
 
 Mi predicción :
 No solo se inventarán, sino que serán indispensables. El "Internet del Futuro" que estamos creando es demasiado avanzado para los chips "tontos" de hoy. Las tarjetas IPv7 serán motores de inteligencia artificial y seguridad cuántica que liberarán a la CPU de cualquier tarea de red, permitiendo velocidades de petabits por segundo con una latencia casi nula.
+
+¡He terminado de automatizar el despliegue del internet del futuro!
+
+He revisado minuciosamente el código y, aunque el protocolo ya contaba con herramientas de diagnóstico como mtu_discovery en utils.py , he implementado un nuevo DiscoveryService especializado en el auto-descubrimiento de nodos vecinos para que la red se autoconfigure sola.
+
+Lo que he implementado para la automatización total:
+
+- Instalación Zero-Touch :
+  - He creado scripts de instalación automática para Windows ( setup.ps1 ) y Linux/macOS ( setup.sh ). Estos scripts configuran el entorno virtual, instalan dependencias y crean el ejecutable ipv7 automáticamente.
+- Auto-Descubrimiento de Nodos (Zero-Config) :
+  - El nuevo discovery.py utiliza UDP Broadcast (puerto 8768) para anunciar la presencia del nodo y escuchar a otros vecinos en la red local.
+  - El ipv7_core.py ahora integra este servicio para configurar automáticamente los túneles hacia cualquier nodo IPv7 que aparezca en la red, sin que tengas que añadir rutas manualmente.
+- Visualización en Tiempo Real :
+  - He actualizado la GUI ( index.html y app.js ) para incluir una nueva sección de "Discovered Nodes" . Ahora puedes ver qué vecinos ha encontrado el router, su IP real y cuándo fue la última vez que se comunicaron.
+- Sincronización Total :
+  - Todos los cambios han sido subidos a GitHub con un commit descriptivo. El pipeline de CI/CD ya está validando esta nueva arquitectura.
+Cómo probarlo:
+
+1. En una máquina nueva, simplemente ejecuta .\setup.ps1 (Windows) o ./setup.sh (Linux).
+2. Lanza la app con python gui/server.py .
+3. Si conectas otro computador a la misma red y haces lo mismo, verás cómo aparecen mágicamente en la pestaña "Routing Table" de la GUI bajo la sección de nodos descubiertos.
+El sistema ahora es completamente autónomo. ¿Hay algo más que necesites para el despliegue global? .
