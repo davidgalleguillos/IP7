@@ -1,7 +1,9 @@
 import numpy as np
+from typing import Any
 
 try:
     import turboquant as tq  # type: ignore
+
     _HAS_TURBOQUANT = True
 except Exception:  # pragma: no cover
     _HAS_TURBOQUANT = False
@@ -30,7 +32,7 @@ class TurboQuantWrapper:
         return tensor.astype(np.float16).tobytes()
 
     @staticmethod
-    def decompress(data: bytes, shape: tuple, dtype: np.dtype = np.float32) -> np.ndarray:
+    def decompress(data: bytes, shape: tuple, dtype: Any = np.float32) -> np.ndarray:
         """Decompress previously compressed data.
 
         ``shape`` must be the original array shape. When the real TurboQuant is

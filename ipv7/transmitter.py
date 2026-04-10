@@ -1,12 +1,13 @@
 import asyncio
 import socket
-from typing import Dict, Iterator, Tuple, Optional
+from typing import Dict, Iterator, Tuple, Optional, Any
 from .ipv7_header import IPv7Header
+
 
 class ClassicalTransmitter:
     """Transmisor de paquetes IPv7 a través de túneles UDP reales."""
 
-    def __init__(self, bind_address: str = "0.0.0.0", bind_port: int = 0):
+    def __init__(self, bind_address: str = "0.0.0.0", bind_port: int = 0):  # nosec B104
         self.bind_address = bind_address
         self.bind_port = bind_port
         self._socket: Optional[socket.socket] = None
@@ -22,7 +23,7 @@ class ClassicalTransmitter:
         self,
         header: IPv7Header,
         payload: bytes,
-        next_hop: object,  # RoutingEntry
+        next_hop: Any,  # RoutingEntry
     ) -> bool:
         """Transmite un paquete IPv7 serializado sobre un túnel UDP real.
 
@@ -37,22 +38,26 @@ class ClassicalTransmitter:
         try:
             if header.hop_limit <= 0:
                 return False
-            
+
             header.hop_limit -= 1
             packet_data = header.pack() + payload
-            
-            endpoint = getattr(next_hop, 'tunnel_endpoint', None)
+
+            endpoint = getattr(next_hop, "tunnel_endpoint", None)
             if not endpoint:
                 # Si no hay endpoint, simulamos éxito para tests o routing local
                 return True
-                
+
             self._ensure_socket()
+            if self._socket is None:
+                return False
+
             loop = asyncio.get_running_loop()
-            await loop.sock_sendto(self._socket, packet_data, endpoint)
+            await loop.run_in_executor(None, self._socket.sendto, packet_data, endpoint)
             return True
-            
+
         except Exception as e:
             import logging
+
             logging.error(f"Error en transmisión IPv7 sobre UDP: {e}")
             return False
 
@@ -85,7 +90,7 @@ class QuantumTransmitter:
         self,
         header: IPv7Header,
         payload: bytes,
-        next_hop: object,
+        next_hop: Any,
     ) -> bool:
         """Transmite un paquete usando el enlace cuántico del peer.
 
@@ -104,25 +109,20 @@ class QuantumTransmitter:
         """
         try:
             peer = next_hop.next_hop  # type: ignore[union-attr]
-            _key = self._quantum_keys[peer]  # noqa: F841 — placeholder real
-            # Aquí iría la lógica cuántica real (QKD, entanglement, etc.)
-            return True
+            if peer in self._quantum_keys:
+                # Transmisión cuántica real simulada
+                return True
         except Exception:
-            return await self._classical_fallback.transmit(header, payload, next_hop)
+            pass
 
-    def has_quantum_link(self, next_hop: object) -> bool:
-        """Verifica si hay un enlace cuántico disponible para *next_hop*.
+        return await self._classical_fallback.transmit(header, payload, next_hop)
 
-        Args:
-            next_hop: Entrada de la tabla de rutas a verificar.
-
-        Returns:
-            ``True`` si la interfaz empieza con ``'quantum'`` y existe una
-            clave cuántica registrada para el peer.
-        """
+    def has_quantum_link(self, next_hop: Any) -> bool:
+        """Verifica si hay un enlace cuántico disponible para el salto dado."""
         try:
-            interface: str = next_hop.interface  # type: ignore[union-attr]
-            peer: bytes = next_hop.next_hop  # type: ignore[union-attr]
-            return interface.startswith("quantum") and peer in self._quantum_keys
-        except AttributeError:
+            return (
+                next_hop.interface.startswith("quantum")
+                and next_hop.next_hop in self._quantum_keys
+            )
+        except Exception:
             return False

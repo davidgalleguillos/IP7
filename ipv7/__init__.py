@@ -8,16 +8,17 @@ from .compression import TurboQuantWrapper
 
 __version__ = "0.1.0"
 __all__ = [
-    'IPv7Header',
-    'GeoLocation',
-    'QoSLevel',
-    'IPv7Router',
-    'RoutingEntry',
-    'IPv7Address',
-    'PacketValidator',
-    'NetworkDiagnostics',
-    'AIRouter','TurboQuantWrapper',
-    'NetworkState',
-    'QuantumInterface',
-    'SmartFirewall'
+    "IPv7Header",
+    "GeoLocation",
+    "QoSLevel",
+    "IPv7Router",
+    "RoutingEntry",
+    "IPv7Address",
+    "PacketValidator",
+    "NetworkDiagnostics",
+    "AIRouter",
+    "TurboQuantWrapper",
+    "NetworkState",
+    "QuantumInterface",
+    "SmartFirewall",
 ]

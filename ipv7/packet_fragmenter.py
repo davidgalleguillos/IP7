@@ -11,7 +11,9 @@ class PacketFragmenter:
     MTU: int = 9000
 
     @staticmethod
-    def fragment(header: IPv7Header, payload: bytes) -> Iterator[Tuple[IPv7Header, bytes]]:
+    def fragment(
+        header: IPv7Header, payload: bytes
+    ) -> Iterator[Tuple[IPv7Header, bytes]]:
         """Genera fragmentos del paquete si el payload supera el MTU.
 
         Si el payload cabe en un solo paquete, produce un único par
@@ -32,11 +34,12 @@ class PacketFragmenter:
             return
 
         import random
+
         fragment_id = random.randint(0, 0xFFFFFFFF)
         offset = 0
         while offset < len(payload):
             chunk_size = min(len(payload) - offset, mtu)
-            chunk = payload[offset:offset + chunk_size]
+            chunk = payload[offset : offset + chunk_size]
             fragment_header = IPv7Header(
                 source=header.source,
                 destination=header.destination,
@@ -50,7 +53,7 @@ class PacketFragmenter:
                 encryption_algorithm=header.encryption_algorithm,
                 fragment_id=fragment_id,
                 fragment_offset=offset,
-                more_fragments=(offset + chunk_size < len(payload))
+                more_fragments=(offset + chunk_size < len(payload)),
             )
             yield (fragment_header, chunk)
             offset += chunk_size
@@ -69,7 +72,9 @@ class PacketFragmenter:
         return payload_length > mtu
 
     @staticmethod
-    def reassemble(fragments: List[Tuple[IPv7Header, bytes]]) -> Tuple[IPv7Header, bytes]:
+    def reassemble(
+        fragments: List[Tuple[IPv7Header, bytes]],
+    ) -> Tuple[IPv7Header, bytes]:
         """Re-ensambla una lista de fragmentos en el paquete original.
 
         Concatena los payloads en orden de desplazamiento y retorna el header
@@ -89,7 +94,7 @@ class PacketFragmenter:
 
         # Ordenar fragmentos por offset para asegurar el reensamblado correcto
         sorted_fragments = sorted(fragments, key=lambda f: f[0].fragment_offset)
-        
+
         # Verificar que no falten fragmentos (opcional pero recomendado)
         current_offset = 0
         for header, payload in sorted_fragments:
@@ -99,10 +104,10 @@ class PacketFragmenter:
 
         first_header = sorted_fragments[0][0]
         reassembled_payload = b"".join(payload for _, payload in sorted_fragments)
-        
+
         # Restaurar campos del header original (simplificado)
         first_header.payload_length = len(reassembled_payload)
         first_header.fragment_offset = 0
         first_header.more_fragments = False
-        
+
         return (first_header, reassembled_payload)
