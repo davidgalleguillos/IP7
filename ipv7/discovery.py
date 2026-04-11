@@ -101,7 +101,9 @@ class DiscoveryService:
                         ] = asyncio.get_event_loop().time()
             except (BlockingIOError, OSError) as e:
                 # En Windows, recvfrom en socket no bloqueante lanza WinError 10035 si no hay datos
-                if getattr(e, "winerror", None) == 10035 or isinstance(e, BlockingIOError):
+                if getattr(e, "winerror", None) == 10035 or isinstance(
+                    e, BlockingIOError
+                ):
                     await asyncio.sleep(1)
                     continue
                 if self._running:

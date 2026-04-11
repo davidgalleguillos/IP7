@@ -10,13 +10,16 @@ class QoSLevel(Enum):
     REALTIME = 2
     QUANTUM = 3
 
+
 class NextHeader(IntEnum):
     """Protocolos de capa superior o cabeceras de extensión"""
+
     HOPOPT = 0
     TCP = 6
     UDP = 17
     IPV7_ICMP = 58  # Basado en el valor de ICMPv6
-    IPV7_EXT = 60   # Cabecera de extensión personalizada
+    IPV7_EXT = 60  # Cabecera de extensión personalizada
+
 
 @dataclass
 class GeoLocation:

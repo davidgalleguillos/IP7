@@ -110,8 +110,12 @@ class IPv7Router:
                 await self._handle_icmp_packet(header, payload)
             else:
                 # Lógica de reenvío o entrega local para otros protocolos
-                if header.destination == IPv7Header._address_to_bytes(self.local_address):
-                    logging.info(f"Paquete entregado localmente: {payload.decode(errors='ignore')}")
+                if header.destination == IPv7Header._address_to_bytes(
+                    self.local_address
+                ):
+                    logging.info(
+                        f"Paquete entregado localmente: {payload.decode(errors='ignore')}"
+                    )
                 else:
                     await self._route_packet(header, payload)
 
@@ -122,7 +126,9 @@ class IPv7Router:
         """Maneja mensajes de control ICMPv7"""
         try:
             icmp = ICMPv7Message.unpack(payload)
-            logging.info(f"ICMPv7 recibido: Tipo {icmp.type.name} de {header.source.hex()}")
+            logging.info(
+                f"ICMPv7 recibido: Tipo {icmp.type.name} de {header.source.hex()}"
+            )
 
             if icmp.type == ICMPv7Type.ECHO_REQUEST:
                 # Responder con Echo Reply
@@ -131,7 +137,7 @@ class IPv7Router:
                     source=IPv7Header._address_to_bytes(self.local_address),
                     destination=header.source,
                     next_header=NextHeader.IPV7_ICMP,
-                    qos_level=header.qos_level
+                    qos_level=header.qos_level,
                 )
                 await self.send(reply_header, reply.pack())
                 logging.info(f"Enviado ICMPv7 Echo Reply a {header.source.hex()}")
@@ -143,7 +149,7 @@ class IPv7Router:
         """Envía un paquete IPv7"""
         # Recolectar métricas para entrenamiento de IA
         start_time = time.perf_counter()
-        
+
         if header.encryption_enabled:
             payload = self.fernet.encrypt(payload)
             header.payload_length = len(payload)
@@ -161,16 +167,18 @@ class IPv7Router:
         state = NetworkState(
             latency=duration,
             bandwidth=self.MTU * 8 / (duration / 1000) if duration > 0 else 10000,
-            congestion=0.1, # Placeholder simplificado
+            congestion=0.1,  # Placeholder simplificado
             error_rate=0.0 if success else 1.0,
             quantum_available=header.qos_level == QoSLevel.QUANTUM,
-            qos_level=header.qos_level
+            qos_level=header.qos_level,
         )
         self.ai_router.add_route_result(state, 1.0 if success else 0.0)
-        
+
         # Guardar modelo periódicamente (cada 100 resultados por ejemplo)
         if len(self.ai_router.route_history) % 10 == 0:
-            await self.ai_router.train(batch_size=min(len(self.ai_router.route_history), 32))
+            await self.ai_router.train(
+                batch_size=min(len(self.ai_router.route_history), 32)
+            )
             self.ai_router.save_model(".ipv7_ai_model.pth")
 
         return success
