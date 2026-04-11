@@ -3,14 +3,17 @@ import logging
 from .exceptions import RoutingError, QuantumLinkError
 from typing import Any, List, Tuple, Dict, Optional
 
-from .ipv7_header import IPv7Header, QoSLevel
+from .ipv7_header import IPv7Header, QoSLevel, NextHeader
 from .transmitter import ClassicalTransmitter
 from .discovery import DiscoveryService
+from .icmpv7 import ICMPv7Message, ICMPv7Type
+from .ai_routing import AIRouter, NetworkState
 import hashlib
 import random
 import asyncio
 import socket
 import logging
+import time
 from cryptography.fernet import Fernet
 
 
@@ -43,6 +46,7 @@ class IPv7Router:
         self.local_address = local_address
         self.transmitter = ClassicalTransmitter(bind_port=bind_port)
         self._running = False
+        self.ai_router = AIRouter()
         self.discovery_service = DiscoveryService(
             ipv7_address=local_address,
             udp_tunnel_port=bind_port,
@@ -101,15 +105,45 @@ class IPv7Router:
 
             logging.info(f"Paquete IPv7 recibido de {header.source.hex()} vía {addr}")
 
-            # Aquí iría la lógica de entrega local o reenvío
-            # Si el destino somos nosotros (implementar local_address), procesar
-            # Si no, reenviar usando _route_packet
+            # Procesar según el tipo de cabecera
+            if header.next_header == NextHeader.IPV7_ICMP:
+                await self._handle_icmp_packet(header, payload)
+            else:
+                # Lógica de reenvío o entrega local para otros protocolos
+                if header.destination == IPv7Header._address_to_bytes(self.local_address):
+                    logging.info(f"Paquete entregado localmente: {payload.decode(errors='ignore')}")
+                else:
+                    await self._route_packet(header, payload)
 
         except Exception as e:
             logging.error(f"Error al procesar paquete entrante: {e}")
 
+    async def _handle_icmp_packet(self, header: IPv7Header, payload: bytes):
+        """Maneja mensajes de control ICMPv7"""
+        try:
+            icmp = ICMPv7Message.unpack(payload)
+            logging.info(f"ICMPv7 recibido: Tipo {icmp.type.name} de {header.source.hex()}")
+
+            if icmp.type == ICMPv7Type.ECHO_REQUEST:
+                # Responder con Echo Reply
+                reply = ICMPv7Message(type=ICMPv7Type.ECHO_REPLY, data=icmp.data)
+                reply_header = IPv7Header(
+                    source=IPv7Header._address_to_bytes(self.local_address),
+                    destination=header.source,
+                    next_header=NextHeader.IPV7_ICMP,
+                    qos_level=header.qos_level
+                )
+                await self.send(reply_header, reply.pack())
+                logging.info(f"Enviado ICMPv7 Echo Reply a {header.source.hex()}")
+
+        except Exception as e:
+            logging.error(f"Error al procesar ICMPv7: {e}")
+
     async def send(self, header: IPv7Header, payload: bytes) -> bool:
         """Envía un paquete IPv7"""
+        # Recolectar métricas para entrenamiento de IA
+        start_time = time.perf_counter()
+        
         if header.encryption_enabled:
             payload = self.fernet.encrypt(payload)
             header.payload_length = len(payload)
@@ -121,6 +155,23 @@ class IPv7Router:
             if not await self._route_packet(packet_header, packet_payload):
                 success = False
                 break
+
+        # Alimentar el modelo de IA con el resultado real
+        duration = (time.perf_counter() - start_time) * 1000
+        state = NetworkState(
+            latency=duration,
+            bandwidth=self.MTU * 8 / (duration / 1000) if duration > 0 else 10000,
+            congestion=0.1, # Placeholder simplificado
+            error_rate=0.0 if success else 1.0,
+            quantum_available=header.qos_level == QoSLevel.QUANTUM,
+            qos_level=header.qos_level
+        )
+        self.ai_router.add_route_result(state, 1.0 if success else 0.0)
+        
+        # Guardar modelo periódicamente (cada 100 resultados por ejemplo)
+        if len(self.ai_router.route_history) % 10 == 0:
+            await self.ai_router.train(batch_size=min(len(self.ai_router.route_history), 32))
+            self.ai_router.save_model(".ipv7_ai_model.pth")
 
         return success
 

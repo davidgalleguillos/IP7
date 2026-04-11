@@ -132,7 +132,7 @@ class AIRouter:
         with torch.no_grad():
             X = self._state_to_tensor(state).unsqueeze(0).unsqueeze(0)
             prediction, _ = self.model(X)
-            return prediction.item()
+            return float(prediction.item())
 
     def get_route_recommendation(self, states: List[NetworkState]) -> int:
         """Recomienda la mejor ruta basada en predicciones"""

@@ -3,6 +3,9 @@ const API = 'http://localhost:8765';
 const latencyData = Array(60).fill(null);
 let chart = null;
 let statsInterval = null;
+let network;
+let nodesData;
+let edgesData;
 
 // ---- Navigation ----
 document.querySelectorAll('.nav-item').forEach(item => {
@@ -22,6 +25,21 @@ document.querySelectorAll('.nav-item').forEach(item => {
 function initChart() {
   const canvas = document.getElementById('latency-chart');
   chart = canvas.getContext('2d');
+  
+  // Topology init
+  const container = document.getElementById('network-topology');
+  nodesData = new vis.DataSet([
+    { id: 'local', label: 'Local Node', color: '#00f2fe', shape: 'diamond', size: 30 }
+  ]);
+  edgesData = new vis.DataSet([]);
+  const data = { nodes: nodesData, edges: edgesData };
+  const options = {
+    nodes: { font: { color: '#ffffff', face: 'JetBrains Mono' }, borderWidth: 2 },
+    edges: { color: { color: '#444', highlight: '#00f2fe' }, width: 1, arrows: { to: true } },
+    physics: { enabled: true, barnesHut: { gravitationalConstant: -2000 } }
+  };
+  network = new vis.Network(container, data, options);
+
   resizeCanvas();
   window.addEventListener('resize', resizeCanvas);
 }
@@ -331,6 +349,12 @@ async function fetchDiscoveredNodes() {
         <td class="text-muted">${Math.abs(n.last_seen)}s ago</td>
       `;
       tbody.appendChild(tr);
+
+      // Update Topology
+      if (!nodesData.get(n.ipv7)) {
+        nodesData.add({ id: n.ipv7, label: n.ipv7, shape: 'dot', size: 20, color: '#f093fb' });
+        edgesData.add({ from: 'local', to: n.ipv7 });
+      }
     });
   } catch (e) {
     console.error('Failed to fetch discovered nodes', e);
