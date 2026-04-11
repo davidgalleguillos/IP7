@@ -99,10 +99,17 @@ class DiscoveryService:
                         self._discovered_nodes[node_v7][
                             "last_seen"
                         ] = asyncio.get_event_loop().time()
-
-            except Exception as e:
+            except (BlockingIOError, OSError) as e:
+                # En Windows, recvfrom en socket no bloqueante lanza WinError 10035 si no hay datos
+                if getattr(e, "winerror", None) == 10035 or isinstance(e, BlockingIOError):
+                    await asyncio.sleep(1)
+                    continue
                 if self._running:
                     logging.error(f"Error en escucha de descubrimiento: {e}")
+                await asyncio.sleep(1)
+            except Exception as e:
+                if self._running:
+                    logging.error(f"Error inesperado en descubrimiento: {e}")
                 await asyncio.sleep(1)
 
     def stop(self):

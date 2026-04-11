@@ -1,3 +1,3 @@
 @echo off
 set PYTHONPATH=%PYTHONPATH%;%CD%
-python %CD%\ipv7\cli.py %*
+.\venv\Scripts\python.exe %CD%\ipv7\cli.py %*
