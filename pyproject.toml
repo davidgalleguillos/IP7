@@ -30,7 +30,10 @@ ipv7 = "ipv7.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["ipv7*"]
+include = ["ipv7*", "gui*"]
+
+[tool.setuptools.package-data]
+"gui" = ["*.html", "*.css", "*.js"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
