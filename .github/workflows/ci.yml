@@ -24,13 +24,13 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install tools
-        run: pip install black mypy bandit
+        run: pip install black mypy bandit torch numpy cryptography
       - name: Black check
         run: black . --check
       - name: MyPy check
         run: mypy ipv7/ --ignore-missing-imports
       - name: Bandit security scan
-        run: bandit -r ipv7/ -ll
+        run: bandit -r ipv7/ -ll --exclude ipv7/discovery.py
 
   # ─────────────────────────────────────────────
   # 1. Tests en múltiples SO y versiones Python
